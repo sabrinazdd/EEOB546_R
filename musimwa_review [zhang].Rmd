@@ -1,0 +1,22 @@
+---
+title: "musimwa_review[zhang]"
+author: "musimwa"
+date: "October 15, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Most of the codes run well and you have answered the questions. I however could not run the codes i have indicated below. Could you re-check them to see if they do run. You have a few packages reinstalled more than once.
+
+```{r}
+s_ftg <- ftg %>% group_by(Group, SNPs_ID, add = TRUE) %>% distinct(base.composition) %>% summarize(n())
+s_ftg1 <- s_ftg %>% mutate(snp_present = (`n()` > 1))%>% group_by(Group) %>% summarize(sum(snp_present))
+ggplot(s_ftg1,aes(Group, `sum(snp_present)`)) + geom_col()+theme(axis.text.x = element_text(angle = 90,hjust = 1))
+
+```
+
