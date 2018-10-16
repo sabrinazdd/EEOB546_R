@@ -6,8 +6,11 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-### part I: data inspection and processing
-## Get the origianl files
+
+## Part I: Data inspection and processing
+
+1 Get the origianl files
+
 
 ```{r}
 library(tidyverse)
@@ -17,7 +20,7 @@ snp <- read_tsv("https://raw.githubusercontent.com/EEOB-BioData/BCB546X-Fall2018
 snp
 ```
 
-## inspect both files
+2 inspect both files
 
 ```{r}
 is.data.frame(genotype)
@@ -28,33 +31,31 @@ ncol(snp)
 nrow(snp)
 ```
 
-## genotype file processing (extracting maize and teosinte data,respectly and transpose the extrated data to new data.frames)
+3 original genotype file processing (extracting maize and teosinte data,respectly and transpose the extrated data to new data.frames)
+
 ```{r}
 library(dplyr)
 mg <- filter (genotype, Group %in% c("ZMMIL","ZMMMR","ZMMLR")) # extracting maize data
 teog <- filter (genotype, Group %in% c ("ZMPBA","ZMPIL","ZMPJA")) # extracting teosinte data
 mg # check the extracted data
-teog
 transposed_mg <- t(mg)%>% as.data.frame() # transpose maize genotype data so columns become rows and keep them as data.frame 
 transposed_teog <- t(teog)%>% as.data.frame() # transpose teosinte genotype data so columns become rows and keep them as data.frame 
 transposed_mg # check the transposed data
 transposed_teog # check the transposed data
 s_mg <- slice(transposed_mg, 4:986) # get rid of first 3 rows 
-s_mg
 s_teog <- slice(transposed_teog,4:986) # get rid of first 3 rows
-s_teog
+
 
 ```
-## snp file processing
+4 snp file processing
 ```{r}
 snp
 new_snp <- select(snp, SNP_ID, Chromosome, Position) # select col 1,3,4 to a new data.frame named new_snp
 new_snp # check the new data.frame
 
-
 ```
 
-## combine the data from processed genotype and snp files
+5 combine the data from processed genotype and snp files
 
 ```{r}
 c_sm <- bind_cols(new_snp,s_mg) # combine data from SNP file (col 1,3,4) and data from maize
@@ -63,20 +64,16 @@ c_steog <- bind_cols(new_snp,s_teog) # combine data from SNP file (col 1,3,4) an
 c_steog
 
 ```
-## arrange the combined files with SNPs ordered based on increasing position values and then subset them based on chromosome number
+6 arrange the combined files with SNPs ordered based on increasing position values and then subset them based on chromosome number
 
 ```{r}
-library(tidyverse)
 c_sm <- filter(c_sm,Chromosome %in% c("1","2","4","5","6","7","8","9","10","3")&Position !="multiple")# get rid of rows with "unknown" and "multiple" at col2 and col3
-c_sm
 c_steog <- filter(c_steog,Chromosome %in% c("1","2","4","5","6","7","8","9","10","3")&Position !="multiple")
-c_steog
 c_sm <-transform(c_sm, Chromosome =as.numeric(Chromosome),Position =as.numeric(Position))# transform variables (col2,col3) from character into numeric
 c_steog <-transform(c_steog, Chromosome =as.numeric(Chromosome),Position =as.numeric(Position))
 c_sm <- arrange(c_sm,Chromosome, Position)
-c_sm
 c_steog<- arrange(c_steog,Chromosome,Position) 
-c_steog
+
 
 uniqm <- unique(unlist(c_sm$Chromosome))
 uniqm
@@ -97,19 +94,16 @@ for (i in 1:length(uniqt)){
 
 ```
 
-## replace "?" with "-" and then arrange and subset files based on homework requirement 2
+7 replace "?" with "-" and then arrange and subset files based on chromosome and decreasing order of position
 
 ```{r}
 c_sm %>% mutate_if(is.factor, as.character) -> c_sm # convert factor into character before using gsub 
 c_steog %>% mutate_if(is.factor, as.character) -> c_steog
 c_sm[-c(1,2,3)] <- lapply(c_sm[-c(1,2,3)],gsub,pattern="?",replacement="-",fixed=T)
-c_sm
 c_steog[-c(1,2,3)] <-lapply(c_steog[-c(1,2,3)],gsub,pattern="?",replacement="-",fixed=T)
-c_steog
 rd_c_sm <- arrange(c_sm, Chromosome,desc(Position))
-rd_c_sm
 rd_c_steog <- arrange(c_sm, Chromosome,desc(Position))
-rd_c_steog
+
 
 
 for (i in 1:length(uniqm)){
@@ -127,60 +121,52 @@ for (i in 1:length(uniqt)){
 
 ```
 
-### partII: data visualization
-## data reshaping
+## PartII: Data visualization
+
+1 data reshaping
 
 ```{r}
 install.packages("reshape2")
 library(reshape2)
-c_sm
+
 tidy_m <- melt(c_sm, id.vars =c("SNP_ID", "Chromosome", "Position"),variable.name = "corn",value.name = "base.composition")
-tidy_m
+
 tidy_teo <- melt(c_steog, id.vars =c("SNP_ID", "Chromosome", "Position"),variable.name = "corn",value.name = "base.composition")
-tidy_teo
+
 
 ```
 
-## creat graph based on my own interested feature
+2 creat graph based on my own interested feature
 ```{r}
-library(tidyverse)
-library(dplyr)
 ggplot(data=tidy_m)+geom_point(mapping=aes(x=Chromosome,y=Position),alpha=0.01)+scale_x_discrete(limits=c(1,2,3,4,5,6,7,8,9,10))# SNPs distribution along each chromosome in Maize
 ggsave("SNPs_distribution_maize_chromosome.png")
 ggplot(data=tidy_teo)+geom_point(mapping=aes(x=Chromosome,y=Position),alpha=0.01)+scale_x_discrete(limits=c(1,2,3,4,5,6,7,8,9,10))#SNPs distribution along each chromosome in teosinte
 ggsave("SNPs_distribution_teosinte_chromosome.png")
 ```
 
-## PartII: 1)SNPs per chromosome;2)SNPs per Group;3) percentage of homozygosity,hetetozygousity and missing data
+3 creating graphs for 1)SNPs per chromosome;2)SNPs per Group;3) percentage of homozygosity,hetetozygousity and missing data
 
 ```{r}
-library(tidyverse)
-library(reshape2)
-library(plyr)
-library(scales)
-new_snp
 ggplot(data=new_snp)+geom_bar(mapping=aes(x=Chromosome))+scale_x_discrete(limits=c(1,2,3,4,5,6,7,8,9,10))
 ggsave("SNPs_per_Chromosome.png")
 
-library(plyr)
+
 tidy_genotype<-  melt(genotype, id.vars =c("Sample_ID", "JG_OTU", "Group"),variable.name = "SNPs_ID",value.name = "base.composition")
-tidy_genotype
+
 tidy_genotype$Homozygous <- TRUE
 tidy_genotype$Homozygous[tidy_genotype$base.composition=="?/?"]<-NA
 tidy_genotype$Homozygous[substr(tidy_genotype$base.composition,1,1)!=substr(tidy_genotype$base.composition,3,3)] <- FALSE
-tidy_genotype
+
 tidy_genotype <- arrange(tidy_genotype, Group)
 ftg <- filter (tidy_genotype, base.composition!="?/?")
 s_ftg <- ftg %>% group_by(Group, SNPs_ID, add = TRUE) %>% distinct(base.composition) %>% summarize(n())
 s_ftg1 <- s_ftg %>% mutate(snp_present = (`n()` > 1))%>% group_by(Group) %>% summarize(sum(snp_present))
 ggplot(s_ftg1,aes(Group, `sum(snp_present)`)) + geom_col()+theme(axis.text.x = element_text(angle = 90,hjust = 1))
 ggsave("SNPs_per_Group.png")
-tidy_genotype
 
-temp.plot <- ggplot(data = tidy_genotype)+ geom_bar(mapping = aes(x = Group, color = Homozygous, fill = Homozygous))+theme(axis.text.x = element_text(angle = 90,hjust = 1))
-temp.plot
+
+temp.plot <- ggplot(data = tidy_genotype)+ geom_bar(mapping = aes(x = Group, color = Homozygous, fill = Homozygous), position= "fill")+theme(axis.text.x = element_text(angle = 90,hjust = 1))
 ggsave ("status_position.png")
-
 
 
 
